@@ -1,0 +1,15 @@
+- name: update
+  description: Updates the state of the factorio server
+  options:
+    - name: state
+      description: The state of the server
+      type: 3 # string
+      required: true
+      choices:
+        - name: start
+          value: start
+        - name: stop
+          value: stop
+
+- name: fetch
+  description: Fetches the factorio server status

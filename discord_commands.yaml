@@ -7,9 +7,9 @@
       required: true
       choices:
         - name: start
-          value: start
+          value: Running
         - name: stop
-          value: stop
+          value: Stopped
 
-- name: fetch
-  description: Fetches the factorio server status
+- name: describe
+  description: Describe the factorio server status

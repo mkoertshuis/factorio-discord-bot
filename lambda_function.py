@@ -66,6 +66,24 @@ def describe(event):
     }, default=str)
     return content
 
+def update_stack(event,options):
+  cloudformation = boto3.client('cloudformation')
+  for option in options:
+    if option['name'] == "state":
+      state = option['value']
+      break
+  print(f"New state: {state}")
+  response = client.update_stack(
+    StackName="factorio",
+    UsePreviousTemplate=True,
+    Parameters=[{
+      'ParameterKey': 'ServerState',
+      'ParameterValue': state
+    }],
+    Capabilities=['CAPABILITY_IAM']
+  )
+  return response, state
+
 def defer(id, token):
     url = f"https://discord.com/api/interactions/{id}/{token}/callback"
     callback_data = {
@@ -123,15 +141,24 @@ def command_handler(body,event):
     defer(body['id'], body['token'])
 
     command = body['data']['name']
+    options = body['data'].get('options',[])
     match command:
-        case 'fetch':
-            content = describe(event)
-            update({"embeds":[format_describe(content)]}, body['token'])
-            return {
-                'statusCode': 200,
-                'headers': {'Content-Type': 'application/json'},
-                'body': content
-            }
+        case 'describe':
+          content = describe(event)
+          update({"embeds":[format_describe(content)]}, body['token'])
+          return {
+              'statusCode': 200,
+              'headers': {'Content-Type': 'application/json'},
+              'body': content
+          }
+        case 'update':
+          content, state = update_stack(event,options)
+          update({"content":f"Server state set to {state}!"})
+          return {
+              'statusCode': 200,
+              'headers': {'Content-Type': 'application/json'},
+              'body': content
+          }
         case _:
             update({"content":"Command not found!"}, body['token'])
             return {

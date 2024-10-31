@@ -73,7 +73,7 @@ def update_stack(event,options):
       state = option['value']
       break
   print(f"New state: {state}")
-  response = client.update_stack(
+  response = cloudformation.update_stack(
     StackName="factorio",
     UsePreviousTemplate=True,
     Parameters=[{

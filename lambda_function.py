@@ -76,19 +76,21 @@ def lambda_handler(event, context):
     raise
 
 def command_handler(body):
-  command = body['data']['name']
+  defer(body['id'],body['token'])
 
+  command = body['data']['name']
   match command:
     case 'fetch':
-      defer(body['id'],body['token'])
       content = "Hallo World!"
       update(content,body['token'])
+    case _:
+      update("Command not found!",body['token'])
       return {
-        'statusCode': 200,
-        'headers' : {'Content-Type': 'application/json'},
-        'body': content
+        'statusCode': 400,
+        'body': json.dumps('unhandled command')
       }
   return {
-    'statusCode': 400,
-    'body': json.dumps('unhandled command')
+    'statusCode': 200,
+    'headers' : {'Content-Type': 'application/json'},
+    'body': content
   }

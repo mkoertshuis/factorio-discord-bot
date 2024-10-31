@@ -12,6 +12,46 @@ APP_ID = os.getenv('APP_ID')
 print(f'Public Key: {PUBLIC_KEY}')
 print(f'App ID: {APP_ID}')
 
+def format_describe(stack_json):
+  # Load the JSON string into a Python dictionary
+  stack_details = json.loads(stack_json)
+
+  # Extract relevant details
+  stack_name = stack_details.get('StackName', 'N/A')
+  stack_status = stack_details.get('StackStatus', 'N/A')
+  creation_time = stack_details.get('CreationTime', 'N/A')
+  
+  # Format parameters
+  parameters = stack_details.get('Parameters', [])
+  formatted_parameters = "\n".join([f"{param_key}: {param_value}" 
+                                      for param in parameters 
+                                      for param_key, param_value in param.items()])
+
+  # Create a formatted string for the output
+  embed = {
+    "title": stack_name,
+    "color": 5814783,
+    "fields": [
+      {
+        "name": "Stack Status",
+        "value": stack_status,
+        "inline": False
+      },
+      {
+        "name": "Creation Time",
+        "value": creation_time,
+        "inline": False
+      },
+      {
+        "name": "Parameters",
+        "value": formatted_parameters or 'None',
+        "inline": False
+      }
+    ]
+  }
+
+  return embed
+
 def describe(event):
     cloudformation = boto3.client('cloudformation')
     stack_name = event.get('stack_name', 'factorio')
@@ -22,9 +62,7 @@ def describe(event):
         'StackName': stack_details['StackName'],
         'StackStatus': stack_details['StackStatus'],
         'CreationTime': stack_details['CreationTime'].isoformat(),
-        'Parameters': [{param['ParameterKey']: param['ParameterValue']} for param in parameters],
-        'StackResources': stack_details.get('StackResources', []),
-        'Outputs': stack_details.get('Outputs', [])
+        'Parameters': [{param['ParameterKey']: param['ParameterValue']} for param in parameters]
     }, default=str)
     return content
 
@@ -39,11 +77,8 @@ def defer(id, token):
     if response.status_code != 204:  # 204 No Content is expected
         print(f'Failed to defer interaction: {response.text}')
 
-def update(message, token):
+def update(data, token):
     url = f"https://discord.com/api/webhooks/{APP_ID}/{token}/messages/@original"
-    data = {
-        "content": message
-    }
     response = requests.patch(url, json=data)
     print(f'Update Response: {response.status_code} - {response.text}')  # Debug line
 
@@ -91,14 +126,14 @@ def command_handler(body,event):
     match command:
         case 'fetch':
             content = describe(event)
-            update(content, body['token'])
+            update({"embeds":[format_describe(content)]}, body['token'])
             return {
                 'statusCode': 200,
                 'headers': {'Content-Type': 'application/json'},
                 'body': content
             }
         case _:
-            update("Command not found!", body['token'])
+            update({"content":"Command not found!"}, body['token'])
             return {
                 'statusCode': 400,
                 'body': json.dumps('unhandled command')
